@@ -23,10 +23,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+// In Vercel, frontend and API are on same domain, so CORS is less strict
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : 'http://localhost:3000',
+  origin: process.env.VERCEL 
+    ? true // Allow all origins in Vercel (same domain)
+    : (process.env.NODE_ENV === 'production' 
+      ? process.env.FRONTEND_URL 
+      : 'http://localhost:3000'),
   credentials: true,
 }));
 app.use(express.json());
@@ -45,8 +48,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
 
-// Serve static files from the Vite build in production
-if (process.env.NODE_ENV === 'production') {
+// Serve static files from the Vite build in production (only for non-Vercel deployments)
+// Vercel serves static files automatically, so we skip this
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   app.use(express.static(path.join(__dirname, '../dist')));
   
   // Handle React Router - serve index.html for all non-API routes
@@ -60,7 +64,13 @@ if (process.env.NODE_ENV === 'production') {
 // Error handler (must be last)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Only start listening if not in Vercel environment
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+// Export app for Vercel serverless functions
+export default app;
 
