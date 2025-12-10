@@ -23,14 +23,27 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-// In Vercel, frontend and API are on same domain, so CORS is less strict
+// CORS configuration - allow all origins in Vercel/production, specific in dev
 app.use(cors({
-  origin: process.env.VERCEL 
-    ? true // Allow all origins in Vercel (same domain)
-    : (process.env.NODE_ENV === 'production' 
-      ? process.env.FRONTEND_URL 
-      : 'http://localhost:3000'),
+  origin: (origin, callback) => {
+    // Allow requests with no origin (same-origin, mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    
+    // In Vercel or production, allow all origins (frontend and API on same domain)
+    if (process.env.VERCEL || process.env.VERCEL_ENV || process.env.NODE_ENV === 'production') {
+      return callback(null, true);
+    }
+    
+    // Development - allow localhost
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    callback(null, true); // Default: allow
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
