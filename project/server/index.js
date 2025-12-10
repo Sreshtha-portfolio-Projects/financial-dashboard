@@ -1,15 +1,25 @@
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
+
 // Load environment variables FIRST before any other imports
-dotenv.config();
+// On Render, env vars are already in process.env, but we load .env for local dev
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const envPath = join(__dirname, '../.env');
+
+if (existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+} else {
+  // Try default location (for local dev)
+  dotenv.config();
+}
 
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { errorHandler } from './lib/errorHandler.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Import routes
 import authRoutes from './routes/auth.js';
