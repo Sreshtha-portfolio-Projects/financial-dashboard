@@ -46,62 +46,21 @@ console.log('===========================');
 app.set('etag', false);
 
 // Middleware
-// Manual CORS handling - always allow in production
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // In production, always allow any origin
-  const isProduction = process.env.RENDER || 
-                       process.env.VERCEL || 
-                       process.env.VERCEL_ENV || 
-                       process.env.NODE_ENV === 'production';
-  
-  const shouldAllow = !origin || 
-                      isProduction || 
-                      origin.includes('localhost') || 
-                      origin.includes('127.0.0.1');
-  
-  // Handle OPTIONS preflight FIRST
-  if (req.method === 'OPTIONS') {
-    const requestedHeaders = req.headers['access-control-request-headers'];
-    const requestedMethod = req.headers['access-control-request-method'];
-    
-    console.log('OPTIONS preflight - Origin:', origin);
-    console.log('  Requested method:', requestedMethod);
-    console.log('  Requested headers:', requestedHeaders);
-    
-    if (origin && shouldAllow) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-      // Echo back the requested headers (browser requirement for preflight)
-      if (requestedHeaders) {
-        res.header('Access-Control-Allow-Headers', requestedHeaders);
-      } else {
-        // Default headers if none requested
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With, Cache-Control, Pragma');
-      }
-      res.header('Access-Control-Max-Age', '86400');
-      
-      return res.status(204).end();
-    } else {
-      return res.status(403).json({ error: 'CORS not allowed' });
-    }
-  }
-  
-  // For actual requests (GET, POST, etc.), set CORS headers
-  if (origin && shouldAllow) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With, Cache-Control, Pragma');
-    res.header('Access-Control-Expose-Headers', 'Content-Type, Authorization');
-    
-    console.log(`[${req.method}] CORS headers set for origin:`, origin);
-  }
-  
-  next();
-});
+// CORS configuration - automatic preflight handling
+const isProduction = process.env.RENDER || 
+                     process.env.VERCEL || 
+                     process.env.VERCEL_ENV || 
+                     process.env.NODE_ENV === 'production';
+
+app.use(cors({
+  origin: isProduction ? true : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Cache-Control', 'Pragma'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+  maxAge: 86400, // Cache preflight for 24 hours - reduces repeated OPTIONS requests
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
