@@ -46,76 +46,48 @@ console.log('===========================');
 app.set('etag', false);
 
 // Middleware
-// CORS configuration - explicitly allow all origins in production (Render/Vercel)
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (same-origin, mobile apps, Postman)
-    if (!origin) return callback(null, true);
-    
-    // In production (Render/Vercel), allow all origins
-    // Check for Render environment, Vercel environment, or production mode
-    if (process.env.RENDER || process.env.VERCEL || process.env.VERCEL_ENV || process.env.NODE_ENV === 'production') {
-      console.log('CORS: Allowing origin:', origin);
-      return callback(null, true);
-    }
-    
-    // Development - allow localhost
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
-    }
-    
-    // Default: allow
-    callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
-  exposedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204,
-  preflightContinue: false,
-}));
-
-// Explicit OPTIONS handler for CORS preflight requests
-// MUST be placed right after CORS middleware to catch preflight requests early
-app.options('*', (req, res) => {
+// Manual CORS handling - always allow in production
+app.use((req, res, next) => {
   const origin = req.headers.origin;
-  console.log('OPTIONS handler - Origin:', origin);
   
-  // When credentials: true, we MUST use the specific origin, not '*'
-  if (origin) {
+  // In production, always allow any origin
+  // In development, only allow localhost
+  const isProduction = process.env.RENDER || 
+                       process.env.VERCEL || 
+                       process.env.VERCEL_ENV || 
+                       process.env.NODE_ENV === 'production';
+  
+  const shouldAllow = !origin || // No origin (same-origin request)
+                      isProduction || // Production - allow all
+                      origin.includes('localhost') || 
+                      origin.includes('127.0.0.1');
+  
+  if (origin && shouldAllow) {
+    // Set CORS headers
     res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    // Only use '*' if no origin (shouldn't happen with credentials)
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+    res.header('Access-Control-Max-Age', '86400');
+    
+    console.log('CORS headers set for origin:', origin);
   }
   
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  // Handle OPTIONS preflight
+  if (req.method === 'OPTIONS') {
+    console.log('OPTIONS preflight - Origin:', origin);
+    return res.status(204).end();
+  }
   
-  res.status(204).end();
+  next();
 });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Add CORS headers to all API responses (backup in case CORS middleware fails)
-app.use('/api', (req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  next();
-});
-
 // Request logging middleware (for debugging in production too)
 app.use('/api', (req, res, next) => {
   console.log(`[${req.method}] ${req.path} - Origin: ${req.headers.origin || 'same-origin'}`);
-  if (req.method === 'OPTIONS') {
-    console.log('OPTIONS preflight request received');
-  }
   next();
 });
 
