@@ -34,11 +34,9 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Log API configuration in development
-if (import.meta.env.DEV) {
-  console.log('API Base URL:', API_BASE_URL);
-  console.log('VITE_API_URL env:', import.meta.env.VITE_API_URL);
-}
+// Log API configuration in development AND production
+console.log('API Base URL:', API_BASE_URL);
+console.log('VITE_API_URL env:', import.meta.env.VITE_API_URL);
 
 // Create axios instance
 const httpClient = axios.create({

@@ -74,8 +74,41 @@ app.use(cors({
   optionsSuccessStatus: 204,
   preflightContinue: false,
 }));
+
+// Explicit OPTIONS handler for CORS preflight requests
+// MUST be placed right after CORS middleware to catch preflight requests early
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  console.log('OPTIONS handler - Origin:', origin);
+  
+  // When credentials: true, we MUST use the specific origin, not '*'
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    // Only use '*' if no origin (shouldn't happen with credentials)
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  
+  res.status(204).end();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Add CORS headers to all API responses (backup in case CORS middleware fails)
+app.use('/api', (req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
 
 // Request logging middleware (for debugging in production too)
 app.use('/api', (req, res, next) => {
@@ -143,22 +176,6 @@ app.use('/api', (req, res, next) => {
   res.removeHeader('Last-Modified');
   
   next();
-});
-
-// Explicit OPTIONS handler for CORS preflight requests
-// This ensures OPTIONS requests return proper CORS headers
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  console.log('OPTIONS handler - Origin:', origin);
-  
-  // Set CORS headers explicitly
-  res.header('Access-Control-Allow-Origin', origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400'); // 24 hours
-  
-  res.status(204).end();
 });
 
 // Root path - provide API information
