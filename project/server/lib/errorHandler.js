@@ -2,7 +2,13 @@
  * Central error handler middleware
  */
 export const errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('=== Server Error ===');
+  console.error('Method:', req.method);
+  console.error('Path:', req.path);
+  console.error('Error Message:', err.message);
+  console.error('Error Stack:', err.stack);
+  console.error('Full Error:', err);
+  console.error('===================');
 
   // Default error
   const status = err.status || err.statusCode || 500;
@@ -10,7 +16,11 @@ export const errorHandler = (err, req, res, next) => {
 
   res.status(status).json({
     error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(process.env.NODE_ENV === 'development' && { 
+      stack: err.stack,
+      path: req.path,
+      method: req.method,
+    }),
   });
 };
 

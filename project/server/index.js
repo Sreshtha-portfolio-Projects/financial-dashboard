@@ -32,6 +32,17 @@ import exportRoutes from './routes/export.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Log environment configuration on startup
+console.log('=== Server Configuration ===');
+console.log('PORT:', PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✓ Set' : '✗ Missing');
+console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✓ Set' : '✗ Missing');
+console.log('===========================');
+
+// Disable ETag generation to prevent 304 responses
+app.set('etag', false);
+
 // Middleware
 // CORS configuration - allow all origins in Vercel/production, specific in dev
 app.use(cors({
@@ -58,6 +69,100 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware (for debugging)
+if (process.env.NODE_ENV === 'development') {
+  app.use('/api', (req, res, next) => {
+    console.log(`[${req.method}] ${req.path} - Origin: ${req.headers.origin || 'same-origin'}`);
+    next();
+  });
+}
+
+// Add cache-control headers to prevent 304 responses for API routes
+app.use('/api', (req, res, next) => {
+  // Remove any conditional request headers that might trigger 304
+  delete req.headers['if-none-match'];
+  delete req.headers['if-modified-since'];
+  
+  // Override status method to prevent 304
+  const originalStatus = res.status.bind(res);
+  res.status = function(code) {
+    // Force 200 if Express tries to send 304
+    if (code === 304) {
+      console.warn('Prevented 304 response, forcing 200');
+      return originalStatus(200);
+    }
+    return originalStatus(code);
+  };
+  
+  // Intercept end/send to ensure we never send 304
+  const originalEnd = res.end.bind(res);
+  res.end = function(...args) {
+    if (res.statusCode === 304) {
+      console.warn('Prevented 304 response in end(), forcing 200');
+      res.statusCode = 200;
+    }
+    return originalEnd(...args);
+  };
+  
+  const originalSend = res.send.bind(res);
+  res.send = function(...args) {
+    if (res.statusCode === 304) {
+      console.warn('Prevented 304 response in send(), forcing 200');
+      res.statusCode = 200;
+    }
+    return originalSend(...args);
+  };
+  
+  const originalJson = res.json.bind(res);
+  res.json = function(...args) {
+    if (res.statusCode === 304) {
+      console.warn('Prevented 304 response in json(), forcing 200');
+      res.statusCode = 200;
+    }
+    return originalJson(...args);
+  };
+  
+  // Disable caching for all API responses
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  });
+  
+  // Remove ETag and Last-Modified headers if they exist
+  res.removeHeader('ETag');
+  res.removeHeader('Last-Modified');
+  
+  next();
+});
+
+// Explicit OPTIONS handler for CORS preflight requests
+// This ensures OPTIONS requests return proper 204 status codes
+app.options('/api/*', (req, res) => {
+  res.status(204).end();
+});
+
+// Root path - provide API information
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Financial Dashboard API Server',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      api: {
+        auth: '/api/auth',
+        transactions: '/api/transactions',
+        categories: '/api/categories',
+        dashboard: '/api/dashboard',
+        import: '/api/import',
+        export: '/api/export',
+      },
+    },
+    note: 'This is the API server. Access the frontend at http://localhost:3000 in development.',
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -70,6 +175,15 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
+
+// 404 handler for unmatched API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    error: 'API endpoint not found',
+    path: req.path,
+    method: req.method,
+  });
+});
 
 // Serve static files from the Vite build in production (only for non-Vercel deployments)
 // Vercel serves static files automatically, so we skip this

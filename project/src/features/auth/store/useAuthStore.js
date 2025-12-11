@@ -6,6 +6,7 @@ export const useAuthStore = create((set, get) => ({
   token: null,
   loading: true,
   error: null,
+  isLoggingOut: false, // Guard to prevent duplicate logout calls
 
   initSession: async () => {
     try {
@@ -86,12 +87,19 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: async () => {
+    // Prevent duplicate logout calls
+    if (get().isLoggingOut) {
+      console.warn('Logout already in progress, skipping duplicate call');
+      return;
+    }
+
     try {
-      await supabase.auth.signOut();
-      set({ user: null, token: null, loading: false, error: null });
+      set({ isLoggingOut: true });
+      await supabase.auth.signOut({ scope: 'global' });
+      set({ user: null, token: null, loading: false, error: null, isLoggingOut: false });
     } catch (error) {
       console.error('Logout error:', error);
-      set({ error: error.message });
+      set({ error: error.message, isLoggingOut: false });
     }
   },
 }));
@@ -101,7 +109,11 @@ supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     useAuthStore.getState().initSession();
   } else if (event === 'SIGNED_OUT') {
-    useAuthStore.setState({ user: null, token: null });
+    // Only update state if not already logging out (to prevent duplicate calls)
+    const state = useAuthStore.getState();
+    if (!state.isLoggingOut) {
+      useAuthStore.setState({ user: null, token: null, isLoggingOut: false });
+    }
   }
 });
 

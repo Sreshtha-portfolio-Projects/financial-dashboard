@@ -159,7 +159,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     throw new Error(`Failed to delete category: ${error.message}`);
   }
 
-  res.json({ message: 'Category deleted successfully' });
+  res.status(204).send();
 }));
 
 export default router;

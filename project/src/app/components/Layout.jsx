@@ -1,14 +1,30 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 import { useAuthStore } from '../../features/auth/store/useAuthStore';
 
 export function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoggingOut } = useAuthStore();
+  const logoutInProgress = useRef(false);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  const handleLogout = async (e) => {
+    // Prevent double clicks and duplicate calls
+    if (logoutInProgress.current || isLoggingOut) {
+      e?.preventDefault();
+      return;
+    }
+
+    try {
+      logoutInProgress.current = true;
+      await logout();
+      navigate('/login');
+    } finally {
+      // Reset after a short delay to allow navigation
+      setTimeout(() => {
+        logoutInProgress.current = false;
+      }, 1000);
+    }
   };
 
   const navItems = [
@@ -58,9 +74,10 @@ export function Layout({ children }) {
                 <span className="text-sm text-gray-600">{user?.email}</span>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+                  disabled={isLoggingOut}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Logout
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
                 </button>
               </div>
             </div>

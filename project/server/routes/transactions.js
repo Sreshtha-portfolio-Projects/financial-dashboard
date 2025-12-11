@@ -220,7 +220,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     throw new Error(`Failed to delete transaction: ${error.message}`);
   }
 
-  res.json({ message: 'Transaction deleted successfully' });
+  res.status(204).send();
 }));
 
 export default router;
