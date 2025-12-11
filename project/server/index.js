@@ -36,6 +36,8 @@ const PORT = process.env.PORT || 5000;
 console.log('=== Server Configuration ===');
 console.log('PORT:', PORT);
 console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('RENDER:', process.env.RENDER ? '✓ Detected' : '✗ Not detected');
+console.log('VERCEL:', process.env.VERCEL ? '✓ Detected' : '✗ Not detected');
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✓ Set' : '✗ Missing');
 console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✓ Set' : '✗ Missing');
 console.log('===========================');
@@ -44,14 +46,16 @@ console.log('===========================');
 app.set('etag', false);
 
 // Middleware
-// CORS configuration - allow all origins in Vercel/production, specific in dev
+// CORS configuration - explicitly allow all origins in production (Render/Vercel)
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (same-origin, mobile apps, Postman)
     if (!origin) return callback(null, true);
     
-    // In Vercel or production, allow all origins (frontend and API on same domain)
-    if (process.env.VERCEL || process.env.VERCEL_ENV || process.env.NODE_ENV === 'production') {
+    // In production (Render/Vercel), allow all origins
+    // Check for Render environment, Vercel environment, or production mode
+    if (process.env.RENDER || process.env.VERCEL || process.env.VERCEL_ENV || process.env.NODE_ENV === 'production') {
+      console.log('CORS: Allowing origin:', origin);
       return callback(null, true);
     }
     
@@ -60,22 +64,27 @@ app.use(cors({
       return callback(null, true);
     }
     
-    callback(null, true); // Default: allow
+    // Default: allow
+    callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+  preflightContinue: false,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request logging middleware (for debugging)
-if (process.env.NODE_ENV === 'development') {
-  app.use('/api', (req, res, next) => {
-    console.log(`[${req.method}] ${req.path} - Origin: ${req.headers.origin || 'same-origin'}`);
-    next();
-  });
-}
+// Request logging middleware (for debugging in production too)
+app.use('/api', (req, res, next) => {
+  console.log(`[${req.method}] ${req.path} - Origin: ${req.headers.origin || 'same-origin'}`);
+  if (req.method === 'OPTIONS') {
+    console.log('OPTIONS preflight request received');
+  }
+  next();
+});
 
 // Add cache-control headers to prevent 304 responses for API routes
 app.use('/api', (req, res, next) => {
@@ -137,8 +146,18 @@ app.use('/api', (req, res, next) => {
 });
 
 // Explicit OPTIONS handler for CORS preflight requests
-// This ensures OPTIONS requests return proper 204 status codes
-app.options('/api/*', (req, res) => {
+// This ensures OPTIONS requests return proper CORS headers
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  console.log('OPTIONS handler - Origin:', origin);
+  
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  
   res.status(204).end();
 });
 
