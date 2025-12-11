@@ -16,6 +16,55 @@ export function UploadCsv({ onImportComplete }) {
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
 
+  // ADD THIS: Auto-detect mapping function
+  const autoDetectMapping = (headers) => {
+    const mapping = {
+      amountField: '',
+      typeField: '',
+      categoryField: '',
+      dateField: '',
+      noteField: '',
+    };
+
+    // Common column name patterns (case-insensitive)
+    const amountPatterns = ['amount', 'value', 'price', 'cost', 'sum', 'total', 'amt'];
+    const datePatterns = ['date', 'transaction_date', 'txn_date', 'time', 'when'];
+    const typePatterns = ['type', 'transaction_type', 'txn_type', 'category_type', 'income_expense'];
+    const categoryPatterns = ['category', 'cat', 'category_name', 'group', 'tag'];
+    const notePatterns = ['note', 'notes', 'description', 'desc', 'memo', 'comment', 'details'];
+
+    headers.forEach(header => {
+      const lowerHeader = header.toLowerCase().trim();
+      
+      // Check amount
+      if (!mapping.amountField && amountPatterns.some(pattern => lowerHeader.includes(pattern))) {
+        mapping.amountField = header;
+      }
+      
+      // Check date
+      if (!mapping.dateField && datePatterns.some(pattern => lowerHeader.includes(pattern))) {
+        mapping.dateField = header;
+      }
+      
+      // Check type
+      if (!mapping.typeField && typePatterns.some(pattern => lowerHeader.includes(pattern))) {
+        mapping.typeField = header;
+      }
+      
+      // Check category
+      if (!mapping.categoryField && categoryPatterns.some(pattern => lowerHeader.includes(pattern))) {
+        mapping.categoryField = header;
+      }
+      
+      // Check note
+      if (!mapping.noteField && notePatterns.some(pattern => lowerHeader.includes(pattern))) {
+        mapping.noteField = header;
+      }
+    });
+
+    return mapping;
+  };
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
@@ -23,11 +72,10 @@ export function UploadCsv({ onImportComplete }) {
     setFile(selectedFile);
     setError('');
 
-    // Read and preview first 10 rows
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
-      const lines = text.split('\n').slice(0, 11); // Header + 10 rows
+      const lines = text.split('\n').slice(0, 11);
       const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
       const rows = lines.slice(1).map(line => {
         const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
@@ -39,6 +87,11 @@ export function UploadCsv({ onImportComplete }) {
       });
 
       setPreview({ headers, rows });
+      
+      // ADD THIS: Auto-detect mapping
+      const autoMapping = autoDetectMapping(headers);
+      setMapping(autoMapping);
+      
       setStep(2);
     };
     reader.readAsText(selectedFile);
@@ -58,18 +111,22 @@ export function UploadCsv({ onImportComplete }) {
     setError('');
 
     try {
-      // Convert file to base64
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const base64 = event.target.result.split(',')[1]; // Remove data:... prefix
+        const base64 = event.target.result.split(',')[1];
 
         const response = await httpClient.post('/import/csv', {
           file: base64,
           mapping,
         });
 
+        // ADD THIS: Log the full response
+        console.log('Import response:', response.data);
+        console.log('Failed rows:', response.data.results?.failed);
+        console.log('Success rows:', response.data.results?.success);
+
         setResult(response.data);
-        setStep(4); // Show results
+        setStep(4);
         if (onImportComplete) {
           onImportComplete();
         }
@@ -77,6 +134,9 @@ export function UploadCsv({ onImportComplete }) {
       };
       reader.readAsDataURL(file);
     } catch (err) {
+      // ADD THIS: Better error logging
+      console.error('Import error:', err);
+      console.error('Error response:', err.response?.data);
       setError(err.response?.data?.error || err.message || 'Import failed');
       setLoading(false);
     }

@@ -9,14 +9,113 @@ const router = express.Router();
 // All routes require authentication
 router.use(authMiddleware);
 
+/**
+ * Normalize category name for consistent matching
+ * - Trim whitespace
+ * - Capitalize first letter
+ * - Handle common variations
+ */
+function normalizeCategoryName(name) {
+  if (!name) return null;
+  
+  let normalized = String(name).trim();
+  if (!normalized) return null;
+  
+  // Capitalize first letter, lowercase the rest
+  normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  
+  // Handle common plural/singular variations
+  const categoryMap = {
+    'Grocery': 'Groceries',
+    'Transport': 'Transportation',
+    'Bill': 'Utilities',
+    'Utility': 'Utilities',
+    'Health': 'Healthcare',
+    'Entertain': 'Entertainment',
+  };
+  
+  // Check if we should map to a standard name
+  for (const [key, value] of Object.entries(categoryMap)) {
+    if (normalized.startsWith(key)) {
+      normalized = value;
+      break;
+    }
+  }
+  
+  return normalized;
+}
+
+/**
+ * Get or create category with case-insensitive matching
+ */
+async function getOrCreateCategory(userId, categoryName, categoryCache) {
+  if (!categoryName) return null;
+  
+  const normalizedName = normalizeCategoryName(categoryName);
+  if (!normalizedName) return null;
+  
+  // Check cache first
+  const cacheKey = normalizedName.toLowerCase();
+  if (categoryCache.has(cacheKey)) {
+    return categoryCache.get(cacheKey);
+  }
+  
+  // Fetch all user categories for case-insensitive matching
+  const { data: allCategories, error: fetchError } = await supabaseAdmin
+    .from('categories')
+    .select('id, name')
+    .eq('user_id', userId);
+  
+  if (fetchError) {
+    console.error('Error fetching categories:', fetchError);
+    return null;
+  }
+  
+  // Find case-insensitive match
+  const existingCategory = allCategories?.find(
+    cat => cat.name.toLowerCase() === normalizedName.toLowerCase()
+  );
+  
+  if (existingCategory) {
+    // Cache it
+    categoryCache.set(cacheKey, existingCategory.id);
+    return existingCategory.id;
+  }
+  
+  // Create new category
+  const { data: newCategory, error: createError } = await supabaseAdmin
+    .from('categories')
+    .insert({
+      user_id: userId,
+      name: normalizedName,
+    })
+    .select()
+    .single();
+  
+  if (createError) {
+    console.error('Error creating category:', createError);
+    return null;
+  }
+  
+  // Cache the new category
+  if (newCategory) {
+    categoryCache.set(cacheKey, newCategory.id);
+    return newCategory.id;
+  }
+  
+  return null;
+}
+
 // POST /api/import/csv - Import transactions from CSV
 router.post('/csv', asyncHandler(async (req, res) => {
   const { userId } = req.user;
 
-  // Expect multipart/form-data with file and mapping config
-  // For simplicity, we'll accept JSON with base64 file or use multer
-  // Here we'll use a simpler approach: expect file buffer in body.file and mapping in body.mapping
-  
+  console.log('Import request received:', {
+    userId,
+    mapping: req.body.mapping,
+    fileSize: req.body.file?.length
+  });
+
   const { file, mapping } = req.body;
 
   if (!file || !mapping) {
@@ -28,7 +127,6 @@ router.post('/csv', asyncHandler(async (req, res) => {
   // Decode base64 file if needed
   let fileBuffer;
   if (typeof file === 'string') {
-    // Assume base64
     fileBuffer = Buffer.from(file, 'base64');
   } else if (Buffer.isBuffer(file)) {
     fileBuffer = file;
@@ -48,7 +146,13 @@ router.post('/csv', asyncHandler(async (req, res) => {
   let rows;
   try {
     rows = parseCSV(fileBuffer);
+    console.log('CSV parsed successfully:', {
+      rowCount: rows.length,
+      firstRow: rows[0],
+      headers: Object.keys(rows[0] || {})
+    });
   } catch (error) {
+    console.error('CSV parsing error:', error);
     return res.status(400).json({ error: `CSV parsing failed: ${error.message}` });
   }
 
@@ -74,6 +178,9 @@ router.post('/csv', asyncHandler(async (req, res) => {
     throw new Error(`Failed to create import batch: ${batchError.message}`);
   }
 
+  // Category cache to avoid duplicate lookups
+  const categoryCache = new Map();
+
   // Process rows
   const results = {
     success: [],
@@ -83,38 +190,23 @@ router.post('/csv', asyncHandler(async (req, res) => {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
+      if (i < 3) {
+        console.log(`Processing row ${i + 1}:`, row);
+      }
+
       // Map CSV row to transaction
       const txnData = mapCSVRowToTransaction(row, mapping, userId);
-
-      // Resolve or create category if category_name is provided
-      let categoryId = null;
-      if (txnData.category_name) {
-        // Check if category exists
-        const { data: existingCategory, error: findError } = await supabaseAdmin
-          .from('categories')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('name', txnData.category_name.trim())
-          .maybeSingle();
-
-        if (existingCategory) {
-          categoryId = existingCategory.id;
-        } else if (!findError) {
-          // Category doesn't exist, create new one
-          const { data: newCategory, error: catError } = await supabaseAdmin
-            .from('categories')
-            .insert({
-              user_id: userId,
-              name: txnData.category_name.trim(),
-            })
-            .select()
-            .single();
-
-          if (!catError && newCategory) {
-            categoryId = newCategory.id;
-          }
-        }
+      
+      if (i < 3) {
+        console.log(`Mapped transaction ${i + 1}:`, txnData);
       }
+
+      // Get or create category with improved matching
+      const categoryId = await getOrCreateCategory(
+        userId, 
+        txnData.category_name, 
+        categoryCache
+      );
 
       // Insert transaction
       const { data: transaction, error: txnError } = await supabaseAdmin
@@ -133,17 +225,31 @@ router.post('/csv', asyncHandler(async (req, res) => {
         .single();
 
       if (txnError) {
+        console.error(`Transaction insert error for row ${i + 1}:`, txnError);
         throw new Error(txnError.message);
+      }
+
+      if (i < 3) {
+        console.log(`Successfully inserted transaction ${i + 1}:`, transaction.id);
       }
 
       results.success.push({ row: i + 1, transaction_id: transaction.id });
     } catch (error) {
+      console.error(`Error processing row ${i + 1}:`, error.message);
       results.failed.push({
         row: i + 1,
         error: error.message,
       });
     }
   }
+
+  console.log('Import complete:', {
+    total: rows.length,
+    success: results.success.length,
+    failed: results.failed.length,
+    categoriesCreated: categoryCache.size,
+    failedDetails: results.failed.slice(0, 5)
+  });
 
   // Update import batch
   const status = results.failed.length === 0 
@@ -169,8 +275,9 @@ router.post('/csv', asyncHandler(async (req, res) => {
     success_rows: results.success.length,
     failed_rows: results.failed.length,
     status,
+    categories_created: categoryCache.size,
     results: {
-      success: results.success.slice(0, 10), // Limit response size
+      success: results.success.slice(0, 10),
       failed: results.failed.slice(0, 10),
     },
   });
