@@ -7,7 +7,9 @@
     "dev:server": "node --watch server/index.js",
     "dev:client": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "npm install --include=dev"
+
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
@@ -20,7 +22,8 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.1",
     "recharts": "^2.10.3",
-    "zustand": "^4.4.7"
+    "zustand": "^4.4.7",
+    "vite": "^7.2.6"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
