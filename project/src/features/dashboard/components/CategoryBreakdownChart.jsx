@@ -20,7 +20,7 @@ export function CategoryBreakdownChart({ data, loading }) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 h-96 flex items-center justify-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 h-96 flex items-center justify-center transition-colors">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
@@ -28,7 +28,7 @@ export function CategoryBreakdownChart({ data, loading }) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 h-96 flex items-center justify-center text-gray-500">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 h-96 flex items-center justify-center text-gray-500 dark:text-gray-400 transition-colors">
         No expense data available for the selected period
       </div>
     );
@@ -50,12 +50,12 @@ export function CategoryBreakdownChart({ data, loading }) {
       const data = payload[0].payload;
       const percentage = total > 0 ? ((data.value / total) * 100).toFixed(1) : 0;
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-1">{data.name}</p>
+        <div className="bg-white dark:bg-gray-800 p-3 border dark:border-gray-700 rounded-lg shadow-lg">
+          <p className="font-semibold text-gray-900 dark:text-white mb-1">{data.name}</p>
           <p className="text-lg font-bold" style={{ color: data.color }}>
             {formatCurrency(data.value)}
           </p>
-          <p className="text-sm text-gray-500 mt-1">{percentage}% of total</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{percentage}% of total</p>
         </div>
       );
     }
@@ -113,8 +113,8 @@ export function CategoryBreakdownChart({ data, loading }) {
                 className="w-4 h-4 rounded"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-sm text-gray-700">{entry.value}</span>
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-sm text-gray-700 dark:text-gray-300">{entry.value}</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
                 {percentage}%
               </span>
             </div>
@@ -130,7 +130,8 @@ export function CategoryBreakdownChart({ data, loading }) {
       <text
         x={x + width + 10}
         y={y + 15}
-        fill="#374151"
+        fill="currentColor"
+        className="text-gray-700 dark:text-gray-300"
         fontSize={12}
         fontWeight={500}
       >
@@ -204,20 +205,20 @@ export function CategoryBreakdownChart({ data, loading }) {
   );
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Expense by Category</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expense by Category</h3>
         <div className="flex items-center space-x-3">
-          <div className="text-sm text-gray-500">
-            Total: <span className="font-semibold text-gray-900">{formatCurrency(total)}</span>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Total: <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(total)}</span>
           </div>
-          <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+          <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
             <button
               onClick={() => setChartType('donut')}
               className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                 chartType === 'donut'
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
               Donut
@@ -227,7 +228,7 @@ export function CategoryBreakdownChart({ data, loading }) {
               className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                 chartType === 'bar'
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
               Bar
@@ -242,7 +243,7 @@ export function CategoryBreakdownChart({ data, loading }) {
       </div>
 
       {/* Category List */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
+      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
         <div className="space-y-2">
           {sortedData.map((item, index) => {
             const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
@@ -253,11 +254,11 @@ export function CategoryBreakdownChart({ data, loading }) {
                     className="w-4 h-4 rounded"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.name}</span>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-600">{percentage}%</span>
-                  <span className="text-sm font-semibold text-gray-900 w-24 text-right">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{percentage}%</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white w-24 text-right">
                     {formatCurrency(item.value)}
                   </span>
                 </div>

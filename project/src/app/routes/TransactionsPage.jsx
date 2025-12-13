@@ -108,23 +108,23 @@ export function TransactionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transactions</h1>
         <div className="flex space-x-2">
           <button
             onClick={() => setShowImport(!showImport)}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            className="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
           >
             {showImport ? 'Hide Import' : 'Import CSV'}
           </button>
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            className="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
           >
             Export CSV
           </button>
           <button
             onClick={handleAdd}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            className="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors"
           >
             Add Transaction
           </button>
@@ -140,26 +140,26 @@ export function TransactionsPage() {
         />
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
         <div className="mb-4 flex flex-wrap gap-4">
           <input
             type="date"
             value={filters.startDate || ''}
             onChange={(e) => filters.setStartDate(e.target.value)}
-            className="rounded-md border-gray-300 text-sm"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             placeholder="Start Date"
           />
           <input
             type="date"
             value={filters.endDate || ''}
             onChange={(e) => filters.setEndDate(e.target.value)}
-            className="rounded-md border-gray-300 text-sm"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             placeholder="End Date"
           />
           <select
             value={filters.type}
             onChange={(e) => filters.setType(e.target.value)}
-            className="rounded-md border-gray-300 text-sm"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
           >
             <option value="all">All Types</option>
             <option value="income">Income</option>
@@ -168,7 +168,7 @@ export function TransactionsPage() {
           <select
             value={filters.categoryId || ''}
             onChange={(e) => filters.setCategoryId(e.target.value || null)}
-            className="rounded-md border-gray-300 text-sm"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
           >
             <option value="">All Categories</option>
             {categoriesStore.items.map((cat) => (
@@ -180,7 +180,7 @@ export function TransactionsPage() {
           <select
             value={filters.walletId || ''}
             onChange={(e) => filters.setWalletId(e.target.value || null)}
-            className="rounded-md border-gray-300 text-sm"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
           >
             <option value="">All Wallets</option>
             {walletsStore.items.map((wallet) => (
@@ -193,7 +193,7 @@ export function TransactionsPage() {
             type="text"
             value={filters.search}
             onChange={(e) => filters.setSearch(e.target.value)}
-            className="rounded-md border-gray-300 text-sm flex-1 min-w-[200px]"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm flex-1 min-w-[200px]"
             placeholder="Search notes..."
           />
         </div>

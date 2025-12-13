@@ -48,20 +48,20 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         <div className="flex space-x-2">
           <input
             type="date"
             value={filters.startDate || ''}
             onChange={(e) => filters.setStartDate(e.target.value)}
-            className="rounded-md border-gray-300 text-sm"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
           />
-          <span className="self-center text-gray-500">to</span>
+          <span className="self-center text-gray-500 dark:text-gray-400">to</span>
           <input
             type="date"
             value={filters.endDate || ''}
             onChange={(e) => filters.setEndDate(e.target.value)}
-            className="rounded-md border-gray-300 text-sm"
+            className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
           />
         </div>
       </div>
