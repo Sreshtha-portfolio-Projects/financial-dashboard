@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useCategoriesStore } from '../../categories/store/useCategoriesStore';
+import { useWalletsStore } from '../../wallets/store/useWalletsStore';
 
 export function TransactionForm({ transaction, onSave, onCancel, loading }) {
   const categories = useCategoriesStore((state) => state.items);
+  const walletsStore = useWalletsStore();
   const [formData, setFormData] = useState({
     amount: '',
     type: 'expense',
     txn_date: new Date().toISOString().split('T')[0],
     category_id: '',
+    wallet_id: '',
     note: '',
   });
+
+  useEffect(() => {
+    walletsStore.fetchWallets();
+  }, []);
 
   useEffect(() => {
     if (transaction) {
@@ -18,6 +25,7 @@ export function TransactionForm({ transaction, onSave, onCancel, loading }) {
         type: transaction.type || 'expense',
         txn_date: transaction.txn_date || new Date().toISOString().split('T')[0],
         category_id: transaction.category_id || '',
+        wallet_id: transaction.wallet_id || '',
         note: transaction.note || '',
       });
     }
@@ -30,6 +38,7 @@ export function TransactionForm({ transaction, onSave, onCancel, loading }) {
       type: formData.type,
       txn_date: formData.txn_date,
       category_id: formData.category_id || null,
+      wallet_id: formData.wallet_id || null,
       note: formData.note || null,
     });
   };
@@ -89,6 +98,22 @@ export function TransactionForm({ transaction, onSave, onCancel, loading }) {
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Wallet (optional)</label>
+            <select
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              value={formData.wallet_id}
+              onChange={(e) => setFormData({ ...formData, wallet_id: e.target.value })}
+            >
+              <option value="">None</option>
+              {walletsStore.items.map((wallet) => (
+                <option key={wallet.id} value={wallet.id}>
+                  {wallet.name} ({wallet.type})
                 </option>
               ))}
             </select>

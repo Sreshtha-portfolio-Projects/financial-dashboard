@@ -8,6 +8,7 @@ export const transactionsApi = {
     if (filters.endDate) params.append('endDate', filters.endDate);
     if (filters.type && filters.type !== 'all') params.append('type', filters.type);
     if (filters.categoryId) params.append('categoryId', filters.categoryId);
+    if (filters.walletId) params.append('walletId', filters.walletId);
     if (filters.search) params.append('search', filters.search);
 
     const response = await httpClient.get(`/transactions?${params.toString()}`);

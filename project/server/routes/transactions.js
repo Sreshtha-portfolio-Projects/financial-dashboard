@@ -29,6 +29,12 @@ router.get('/', asyncHandler(async (req, res) => {
         name,
         icon,
         color
+      ),
+      wallets (
+        id,
+        name,
+        type,
+        currency
       )
     `)
     .eq('user_id', userId)
@@ -48,6 +54,9 @@ router.get('/', asyncHandler(async (req, res) => {
   if (categoryId) {
     query = query.eq('category_id', categoryId);
   }
+  if (walletId) {
+    query = query.eq('wallet_id', walletId);
+  }
   if (search) {
     query = query.or(`note.ilike.%${search}%,external_ref.ilike.%${search}%`);
   }
@@ -58,13 +67,17 @@ router.get('/', asyncHandler(async (req, res) => {
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
 
-  // Transform data to include category name
+  // Transform data to include category and wallet info
   const transactions = data.map(txn => ({
     ...txn,
     category_name: txn.categories?.name || null,
     category_icon: txn.categories?.icon || null,
     category_color: txn.categories?.color || null,
+    wallet_name: txn.wallets?.name || null,
+    wallet_type: txn.wallets?.type || null,
+    wallet_currency: txn.wallets?.currency || null,
     categories: undefined, // Remove nested object
+    wallets: undefined, // Remove nested object
   }));
 
   res.json(transactions);
@@ -78,6 +91,7 @@ router.post('/', asyncHandler(async (req, res) => {
     type,
     txn_date,
     category_id,
+    wallet_id,
     note,
     source = 'manual',
   } = req.body;
@@ -95,6 +109,20 @@ router.post('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Amount must be non-negative' });
   }
 
+  // Verify wallet belongs to user if provided
+  if (wallet_id) {
+    const { data: wallet, error: walletError } = await supabaseAdmin
+      .from('wallets')
+      .select('id')
+      .eq('id', wallet_id)
+      .eq('user_id', userId)
+      .single();
+
+    if (walletError || !wallet) {
+      return res.status(404).json({ error: 'Wallet not found' });
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('transactions')
     .insert({
@@ -103,6 +131,7 @@ router.post('/', asyncHandler(async (req, res) => {
       type,
       txn_date,
       category_id: category_id || null,
+      wallet_id: wallet_id || null,
       note: note || null,
       source,
     })
@@ -113,6 +142,12 @@ router.post('/', asyncHandler(async (req, res) => {
         name,
         icon,
         color
+      ),
+      wallets (
+        id,
+        name,
+        type,
+        currency
       )
     `)
     .single();
@@ -126,7 +161,11 @@ router.post('/', asyncHandler(async (req, res) => {
     category_name: data.categories?.name || null,
     category_icon: data.categories?.icon || null,
     category_color: data.categories?.color || null,
+    wallet_name: data.wallets?.name || null,
+    wallet_type: data.wallets?.type || null,
+    wallet_currency: data.wallets?.currency || null,
     categories: undefined,
+    wallets: undefined,
   };
 
   res.status(201).json(transaction);
@@ -141,6 +180,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     type,
     txn_date,
     category_id,
+    wallet_id,
     note,
   } = req.body;
 
@@ -172,6 +212,22 @@ router.put('/:id', asyncHandler(async (req, res) => {
   }
   if (txn_date !== undefined) updateData.txn_date = txn_date;
   if (category_id !== undefined) updateData.category_id = category_id || null;
+  if (wallet_id !== undefined) {
+    // Verify wallet belongs to user if provided
+    if (wallet_id) {
+      const { data: wallet, error: walletError } = await supabaseAdmin
+        .from('wallets')
+        .select('id')
+        .eq('id', wallet_id)
+        .eq('user_id', userId)
+        .single();
+
+      if (walletError || !wallet) {
+        return res.status(404).json({ error: 'Wallet not found' });
+      }
+    }
+    updateData.wallet_id = wallet_id || null;
+  }
   if (note !== undefined) updateData.note = note || null;
 
   const { data, error } = await supabaseAdmin
@@ -186,6 +242,12 @@ router.put('/:id', asyncHandler(async (req, res) => {
         name,
         icon,
         color
+      ),
+      wallets (
+        id,
+        name,
+        type,
+        currency
       )
     `)
     .single();
@@ -199,7 +261,11 @@ router.put('/:id', asyncHandler(async (req, res) => {
     category_name: data.categories?.name || null,
     category_icon: data.categories?.icon || null,
     category_color: data.categories?.color || null,
+    wallet_name: data.wallets?.name || null,
+    wallet_type: data.wallets?.type || null,
+    wallet_currency: data.wallets?.currency || null,
     categories: undefined,
+    wallets: undefined,
   };
 
   res.json(transaction);

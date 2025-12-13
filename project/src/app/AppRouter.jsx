@@ -6,6 +6,12 @@ import { SignupPage } from './routes/SignupPage';
 import { DashboardPage } from './routes/DashboardPage';
 import { TransactionsPage } from './routes/TransactionsPage';
 import { CategoriesPage } from './routes/CategoriesPage';
+import { WalletsPage } from './routes/WalletsPage';
+import { BudgetsPage } from './routes/BudgetsPage';
+import { GoalsPage } from './routes/GoalsPage';
+import { ProfilePage } from './routes/ProfilePage';
+import { AnalyticsPage } from './routes/AnalyticsPage';
+import { SettingsPage } from './routes/SettingsPage';
 
 export function AppRouter() {
   return (
@@ -39,6 +45,66 @@ export function AppRouter() {
             <PrivateRoute>
               <Layout>
                 <CategoriesPage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/wallets"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <WalletsPage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/budgets"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <BudgetsPage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/goals"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <GoalsPage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <ProfilePage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <AnalyticsPage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/settings/*"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <SettingsPage />
               </Layout>
             </PrivateRoute>
           }

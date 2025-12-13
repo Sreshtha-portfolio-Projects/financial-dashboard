@@ -217,6 +217,7 @@ router.post('/csv', asyncHandler(async (req, res) => {
           type: txnData.type,
           txn_date: txnData.txn_date,
           category_id: categoryId,
+          wallet_id: txnData.wallet_id || null,
           note: txnData.note,
           source: txnData.source,
           external_ref: txnData.external_ref,

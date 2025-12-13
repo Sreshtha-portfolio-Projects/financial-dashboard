@@ -30,7 +30,13 @@ export function Layout({ children }) {
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/transactions', label: 'Transactions', icon: '💰' },
+    { path: '/wallets', label: 'Wallets', icon: '💳' },
+    { path: '/budgets', label: 'Budgets', icon: '📊' },
+    { path: '/goals', label: 'Goals', icon: '🎯' },
+    { path: '/analytics', label: 'Analytics', icon: '📈' },
     { path: '/categories', label: 'Categories', icon: '📁' },
+    { path: '/profile', label: 'Profile', icon: '👤' },
+    { path: '/settings/account', label: 'Settings', icon: '⚙️' },
   ];
 
   return (

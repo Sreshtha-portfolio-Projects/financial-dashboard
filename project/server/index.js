@@ -28,6 +28,11 @@ import categoriesRoutes from './routes/categories.js';
 import dashboardRoutes from './routes/dashboard.js';
 import importRoutes from './routes/import.js';
 import exportRoutes from './routes/export.js';
+import walletsRoutes from './routes/wallets.js';
+import budgetsRoutes from './routes/budgets.js';
+import goalsRoutes from './routes/goals.js';
+import analyticsRoutes from './routes/analytics.js';
+import settingsRoutes from './routes/settings.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -163,6 +168,11 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/wallets', walletsRoutes);
+app.use('/api/budgets', budgetsRoutes);
+app.use('/api/goals', goalsRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler for unmatched API routes
 app.use('/api/*', (req, res) => {

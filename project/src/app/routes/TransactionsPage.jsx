@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTransactionsStore } from '../../features/transactions/store/useTransactionsStore';
 import { useCategoriesStore } from '../../features/categories/store/useCategoriesStore';
+import { useWalletsStore } from '../../features/wallets/store/useWalletsStore';
 import { useFiltersStore } from '../../store/useFiltersStore';
 import { TransactionList } from '../../features/transactions/components/TransactionList';
 import { TransactionForm } from '../../features/transactions/components/TransactionForm';
@@ -10,6 +11,7 @@ import httpClient from '../../lib/httpClient';
 export function TransactionsPage() {
   const transactionsStore = useTransactionsStore();
   const categoriesStore = useCategoriesStore();
+  const walletsStore = useWalletsStore();
   const filters = useFiltersStore();
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -17,11 +19,12 @@ export function TransactionsPage() {
 
   useEffect(() => {
     categoriesStore.fetchCategories();
+    walletsStore.fetchWallets();
   }, []);
 
   useEffect(() => {
     loadTransactions();
-  }, [filters.startDate, filters.endDate, filters.type, filters.categoryId, filters.search]);
+  }, [filters.startDate, filters.endDate, filters.type, filters.categoryId, filters.walletId, filters.search]);
 
   const loadTransactions = async () => {
     try {
@@ -30,6 +33,7 @@ export function TransactionsPage() {
         endDate: filters.endDate,
         type: filters.type,
         categoryId: filters.categoryId,
+        walletId: filters.walletId,
         search: filters.search,
       });
     } catch (error) {
@@ -170,6 +174,18 @@ export function TransactionsPage() {
             {categoriesStore.items.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.walletId || ''}
+            onChange={(e) => filters.setWalletId(e.target.value || null)}
+            className="rounded-md border-gray-300 text-sm"
+          >
+            <option value="">All Wallets</option>
+            {walletsStore.items.map((wallet) => (
+              <option key={wallet.id} value={wallet.id}>
+                {wallet.name}
               </option>
             ))}
           </select>
